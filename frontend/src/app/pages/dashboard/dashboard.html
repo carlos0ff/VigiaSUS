@@ -1,0 +1,161 @@
+<div class="p-6 max-w-6xl mx-auto">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold mb-1" style="color: var(--text);">Dashboard</h1>
+    <p class="text-sm" style="color: var(--text-muted);">
+      Explore dados do SUS em grafo — estabelecimentos, profissionais, repasses e epidemiologia.
+    </p>
+  </div>
+
+  <!-- Search bar -->
+  <div class="relative mb-8">
+    <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+      <svg class="w-4 h-4" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+    </div>
+    <input
+      type="text"
+      placeholder="Buscar hospital, UBS, profissional, medicamento, CID-10..."
+      [value]="searchQuery()"
+      (input)="onSearch($event)"
+      class="w-full pl-11 pr-4 py-3 rounded-xl text-sm transition-all duration-200 outline-none"
+      style="background: var(--surface); border: 1px solid var(--border); color: var(--text);"
+      onfocus="this.style.borderColor='rgba(74,222,128,0.4)'; this.style.boxShadow='0 0 0 3px rgba(74,222,128,0.08)'"
+      onblur="this.style.borderColor='var(--border)'; this.style.boxShadow='none'"
+    >
+    @if (searchQuery()) {
+      <div class="absolute inset-y-0 right-4 flex items-center">
+        <a [routerLink]="['/app/search']" [queryParams]="{ q: searchQuery() }"
+           class="text-xs px-3 py-1 rounded-md transition-colors"
+           style="background: var(--accent); color: #0d1a0e; text-decoration: none;">
+          Buscar →
+        </a>
+      </div>
+    }
+  </div>
+
+  <!-- Entity type grid -->
+  <section class="mb-8">
+    <h2 class="text-xs mono mb-3" style="color: var(--text-muted);">// explorar por tipo</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      @for (ent of entities; track ent.label) {
+        <a [routerLink]="['/app/search']" [queryParams]="{ tipo: ent.queryParam }"
+           class="flex flex-col gap-2 p-4 rounded-xl transition-all duration-200 group"
+           style="background: var(--surface); border: 1px solid var(--border); text-decoration: none;"
+           onmouseover="this.style.borderColor='rgba(74,222,128,0.25)'; this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+               [style.background]="ent.color + '18'"
+               [style.border]="'1px solid ' + ent.color + '30'">
+            <svg class="w-4 h-4" [style.color]="ent.color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" [attr.d]="ent.iconPath"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-semibold" style="color: var(--text);">{{ ent.label }}</p>
+            <p class="text-xs mono" [style.color]="ent.color">{{ ent.count }}</p>
+          </div>
+          <p class="text-xs" style="color: var(--text-muted);">{{ ent.description }}</p>
+        </a>
+      }
+    </div>
+  </section>
+
+  <!-- Recent + Stats grid -->
+  <div class="grid lg:grid-cols-3 gap-6">
+
+    <!-- Recent analyses -->
+    <div class="lg:col-span-2 rounded-xl overflow-hidden"
+         style="background: var(--surface); border: 1px solid var(--border);">
+      <div class="flex items-center justify-between px-4 py-3"
+           style="border-bottom: 1px solid var(--border);">
+        <span class="text-sm font-semibold" style="color: var(--text);">Análises recentes</span>
+        <a routerLink="/app/search"
+           class="text-xs transition-colors"
+           style="color: var(--text-muted); text-decoration: none;"
+           onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">
+          Ver todas →
+        </a>
+      </div>
+      <div class="divide-y" style="border-color: var(--border);">
+        @for (item of recent; track item.id) {
+          <a [routerLink]="['/app/analysis', item.id]"
+             class="flex items-center gap-3 px-4 py-3 transition-colors"
+             style="text-decoration: none;"
+             onmouseover="this.style.background='var(--surface-2)'"
+             onmouseout="this.style.background=''">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold mono"
+                 [style.background]="item.typeColor + '18'"
+                 [style.color]="item.typeColor">
+              {{ item.type.charAt(0) }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate" style="color: var(--text);">{{ item.name }}</p>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs mono" style="color: var(--text-muted);">{{ item.code }}</span>
+                <span class="text-xs" style="color: var(--text-muted);">·</span>
+                <span class="text-xs" style="color: var(--text-muted);">{{ item.city }} — {{ item.state }}</span>
+              </div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full shrink-0"
+                  [style.background]="item.typeColor + '18'"
+                  [style.color]="item.typeColor">
+              {{ item.type }}
+            </span>
+          </a>
+        }
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="flex flex-col gap-3">
+      <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+        <p class="text-xs mono mb-3" style="color: var(--text-muted);">// bases ativas</p>
+        <div class="flex flex-col gap-2">
+          @for (src of [
+            { name: 'CNES',   status: 'atual',    color: '#4ade80' },
+            { name: 'SINAN',  status: 'atual',    color: '#4ade80' },
+            { name: 'SIM',    status: 'atual',    color: '#4ade80' },
+            { name: 'SIHSUS', status: 'atual',    color: '#4ade80' },
+            { name: 'FNS',    status: 'atual',    color: '#4ade80' },
+            { name: 'ANVISA', status: 'indexando', color: '#facc15' },
+            { name: 'BNAFAR', status: 'indexando', color: '#facc15' },
+            { name: 'SINASC', status: 'pendente', color: '#52635a' }
+          ]; track src.name) {
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium mono" style="color: var(--text);">{{ src.name }}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full" [style.background]="src.color"></span>
+                <span class="text-xs mono" [style.color]="src.color">{{ src.status }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+        <p class="text-xs mono mb-3" style="color: var(--text-muted);">// cobertura nacional</p>
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs" style="color: var(--text-muted);">Municípios</span>
+            <span class="text-xs font-semibold mono" style="color: var(--accent);">5.570 / 5.570</span>
+          </div>
+          <div class="h-1.5 rounded-full overflow-hidden" style="background: var(--surface-3);">
+            <div class="h-full rounded-full" style="width: 100%; background: var(--accent);"></div>
+          </div>
+          <div class="flex justify-between items-center mt-1">
+            <span class="text-xs" style="color: var(--text-muted);">Estados + DF</span>
+            <span class="text-xs font-semibold mono" style="color: var(--accent);">27 / 27</span>
+          </div>
+          <div class="h-1.5 rounded-full overflow-hidden" style="background: var(--surface-3);">
+            <div class="h-full rounded-full" style="width: 100%; background: var(--accent);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

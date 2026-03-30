@@ -1,3 +1,64 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+:root {
+  --bg: #0d100e;
+  --surface: #111512;
+  --surface-2: #171c18;
+  --surface-3: #1d231e;
+  --border: #1e2520;
+  --border-2: #252d27;
+  --text: #dde8df;
+  --text-muted: #52635a;
+  --text-dim: #8a9e91;
+  --accent: #4ade80;
+  --accent-dim: #16a34a;
+  --accent-glow: rgba(74, 222, 128, 0.12);
+  --accent-glow-strong: rgba(74, 222, 128, 0.25);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code, kbd, pre, .mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+::selection {
+  background: rgba(74, 222, 128, 0.2);
+  color: var(--text);
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px var(--accent-glow); }
+  50%       { box-shadow: 0 0 28px var(--accent-glow-strong); }
+}
+
+.animate-fade-up   { animation: fadeUp 0.6s ease forwards; }
+.animate-fade-up-2 { animation: fadeUp 0.6s 0.15s ease both; }
+.animate-fade-up-3 { animation: fadeUp 0.6s 0.3s ease both; }
+.animate-fade-in   { animation: fadeIn 0.4s ease forwards; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }

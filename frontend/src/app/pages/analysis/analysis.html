@@ -1,0 +1,222 @@
+<div class="flex flex-col h-full" style="background: var(--bg);">
+
+  <!-- ─── ENTITY HEADER ─── -->
+  <div class="px-6 py-4 shrink-0" style="border-bottom: 1px solid var(--border); background: var(--surface);">
+    <div class="flex items-start gap-4">
+      <!-- Back -->
+      <a routerLink="/app/search"
+         class="mt-0.5 p-1.5 rounded-lg transition-colors shrink-0"
+         style="color: var(--text-muted); text-decoration: none;"
+         onmouseover="this.style.background='var(--surface-3)'; this.style.color='var(--text)'"
+         onmouseout="this.style.background=''; this.style.color='var(--text-muted)'">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+      </a>
+
+      <!-- Icon -->
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base font-bold"
+           [style.background]="entity().typeColor + '18'"
+           [style.color]="entity().typeColor"
+           [style.border]="'1px solid ' + entity().typeColor + '35'">
+        {{ entity().name.charAt(0) }}
+      </div>
+
+      <!-- Info -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-base font-bold" style="color: var(--text);">{{ entity().name }}</h1>
+          <span class="text-xs px-2 py-0.5 rounded-full"
+                [style.background]="entity().typeColor + '18'"
+                [style.color]="entity().typeColor">
+            {{ entity().type }}
+          </span>
+        </div>
+        <div class="flex items-center gap-3 mt-0.5 flex-wrap">
+          <span class="text-xs mono" style="color: var(--text-muted);">{{ entity().code }}</span>
+          <span style="color: var(--border-2);">·</span>
+          <span class="text-xs" style="color: var(--text-muted);">{{ entity().city }} — {{ entity().state }}</span>
+          <span style="color: var(--border-2);">·</span>
+          <span class="text-xs" style="color: var(--text-muted);">{{ entity().beds }}</span>
+        </div>
+      </div>
+
+      <!-- Export button -->
+      <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors shrink-0"
+              style="background: var(--surface-3); color: var(--text-muted); border: 1px solid var(--border); cursor: pointer;"
+              onmouseover="this.style.borderColor='var(--border-2)'; this.style.color='var(--text)'"
+              onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text-muted)'">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Exportar
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 mt-4 -mb-4">
+      @for (tab of tabs; track tab.value) {
+        <button (click)="setTab(tab.value)"
+                class="px-3 py-2 text-xs font-medium transition-all duration-150 rounded-t-lg"
+                [style.color]="activeTab() === tab.value ? 'var(--accent)' : 'var(--text-muted)'"
+                [style.borderBottom]="activeTab() === tab.value ? '2px solid var(--accent)' : '2px solid transparent'"
+                [style.background]="activeTab() === tab.value ? 'var(--accent-glow)' : 'none'"
+                style="cursor: pointer; border-left: none; border-right: none; border-top: none;">
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ─── TAB CONTENT ─── -->
+  <div class="flex-1 overflow-hidden">
+
+    <!-- GRAFO TAB -->
+    @if (activeTab() === 'grafo') {
+      <div class="flex h-full">
+        <!-- Graph -->
+        <div class="flex-1 relative">
+          <div #cytoscapeContainer class="w-full h-full" style="background: var(--bg);"></div>
+          <!-- Legend -->
+          <div class="absolute bottom-4 left-4 p-3 rounded-xl text-xs"
+               style="background: rgba(17,21,18,0.9); border: 1px solid var(--border); backdrop-filter: blur(8px);">
+            <p class="font-semibold mono mb-2" style="color: var(--text-muted);">legenda</p>
+            @for (item of [
+              { color: '#4ade80', label: 'Hospital / Centro' },
+              { color: '#34d399', label: 'UBS / APS' },
+              { color: '#a78bfa', label: 'Ensino / Pesquisa' },
+              { color: '#fb923c', label: 'Governo / FNS' },
+              { color: '#60a5fa', label: 'Instituto' },
+              { color: '#f87171', label: 'Urgência' },
+            ]; track item.label) {
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" [style.background]="item.color"></span>
+                <span style="color: var(--text-muted);">{{ item.label }}</span>
+              </div>
+            }
+          </div>
+          <!-- Controls hint -->
+          <div class="absolute bottom-4 right-4 text-xs mono"
+               style="color: var(--text-muted); opacity: 0.6;">
+            scroll para zoom · arrastar para mover
+          </div>
+        </div>
+
+        <!-- Graph sidebar -->
+        <div class="w-64 shrink-0 overflow-y-auto" style="border-left: 1px solid var(--border); background: var(--surface);">
+          <div class="px-4 py-3" style="border-bottom: 1px solid var(--border);">
+            <p class="text-xs font-semibold" style="color: var(--text);">
+              Conexões <span class="font-normal mono" style="color: var(--text-muted);">({{ connections.length }})</span>
+            </p>
+          </div>
+          <div class="flex flex-col divide-y" style="border-color: var(--border);">
+            @for (conn of connections; track conn.id) {
+              <a [routerLink]="['/app/analysis', conn.id]"
+                 class="flex items-start gap-3 px-4 py-3 transition-colors"
+                 style="text-decoration: none;"
+                 onmouseover="this.style.background='var(--surface-2)'"
+                 onmouseout="this.style.background=''">
+                <div class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold"
+                     [style.background]="conn.typeColor + '20'"
+                     [style.color]="conn.typeColor">
+                  {{ conn.label.charAt(0) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium truncate" style="color: var(--text);">{{ conn.label }}</p>
+                  <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ conn.rel }}</p>
+                  <span class="text-xs" [style.color]="conn.typeColor">{{ conn.type }}</span>
+                </div>
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- INFO TAB -->
+    @if (activeTab() === 'info') {
+      <div class="p-6 overflow-y-auto h-full">
+        <div class="max-w-2xl">
+          <div class="grid gap-3">
+            @for (field of [
+              { label: 'CNPJ',               value: entity().cnpj },
+              { label: 'Código CNES',         value: entity().code },
+              { label: 'Município / UF',      value: entity().city + ' — ' + entity().state },
+              { label: 'Regional de Saúde',   value: entity().region },
+              { label: 'Endereço',            value: entity().address },
+              { label: 'Telefone',            value: entity().phones },
+              { label: 'Leitos',              value: entity().beds },
+              { label: 'Atendimento SUS',     value: entity().sus },
+              { label: 'Ensino / Residência', value: entity().teaching },
+              { label: 'Regulação / SAMU',    value: entity().urgency },
+              { label: 'Prontuário Eletrônico', value: entity().ehr },
+            ]; track field.label) {
+              <div class="flex items-start gap-4 px-4 py-3 rounded-lg"
+                   style="background: var(--surface); border: 1px solid var(--border);">
+                <span class="text-xs font-medium w-40 shrink-0 pt-0.5" style="color: var(--text-muted);">{{ field.label }}</span>
+                <span class="text-xs mono" style="color: var(--text);">{{ field.value }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- REPASSES TAB -->
+    @if (activeTab() === 'repasses') {
+      <div class="p-6 overflow-y-auto h-full">
+        <div class="max-w-3xl">
+          <div class="mb-4 p-3 rounded-lg text-xs" style="background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);">
+            Repasses do Fundo Nacional de Saúde (FNS) para este estabelecimento. Fonte: Portal da Transparência / SIOPS.
+          </div>
+          <div class="rounded-xl overflow-hidden" style="background: var(--surface); border: 1px solid var(--border);">
+            <div class="grid grid-cols-4 px-4 py-2.5 text-xs font-semibold"
+                 style="background: var(--surface-2); border-bottom: 1px solid var(--border); color: var(--text-muted);">
+              <span>Ano</span>
+              <span class="col-span-2">Programa</span>
+              <span>Valor</span>
+            </div>
+            @for (t of transfers; track t.program + t.year) {
+              <div class="grid grid-cols-4 px-4 py-3 text-xs transition-colors"
+                   style="border-bottom: 1px solid var(--border);"
+                   onmouseover="this.style.background='var(--surface-2)'"
+                   onmouseout="this.style.background=''">
+                <span class="mono" style="color: var(--text-muted);">{{ t.year }}</span>
+                <span class="col-span-2" style="color: var(--text);">{{ t.program }}</span>
+                <span class="font-semibold mono" style="color: var(--accent);">{{ t.value }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- INTERNAÇÕES TAB -->
+    @if (activeTab() === 'internacoes') {
+      <div class="p-6 overflow-y-auto h-full">
+        <div class="max-w-3xl">
+          <div class="grid sm:grid-cols-3 gap-4 mb-6">
+            @for (stat of [
+              { label: 'AIHs (2024)',          value: '68.412',     color: '#4ade80' },
+              { label: 'Permanência média',     value: '8.4 dias',   color: '#60a5fa' },
+              { label: 'Custo médio AIH',       value: 'R$ 4.820',   color: '#facc15' },
+              { label: 'Taxa de ocupação',      value: '87%',        color: '#34d399' },
+              { label: 'Cirurgias (2024)',       value: '42.180',     color: '#a78bfa' },
+              { label: 'Óbitos hospitalares',   value: '2.341',      color: '#f87171' },
+            ]; track stat.label) {
+              <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+                <p class="text-xl font-bold mono mb-1" [style.color]="stat.color">{{ stat.value }}</p>
+                <p class="text-xs" style="color: var(--text-muted);">{{ stat.label }}</p>
+              </div>
+            }
+          </div>
+          <div class="text-xs p-3 rounded-lg" style="background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);">
+            Dados agregados do SIHSUS — competência Jan–Dez 2024. Valores sujeitos a revisão pelo gestor.
+          </div>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

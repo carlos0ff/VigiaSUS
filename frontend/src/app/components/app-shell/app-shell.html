@@ -1,0 +1,150 @@
+<div class="flex h-screen overflow-hidden" style="background: var(--bg);">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="flex flex-col shrink-0 transition-all duration-300 overflow-hidden"
+         [style.width]="sidebarOpen() ? '220px' : '56px'"
+         style="background: var(--surface); border-right: 1px solid var(--border);">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5 px-3 h-12 shrink-0"
+         style="border-bottom: 1px solid var(--border);">
+      <div class="w-7 h-7 rounded flex items-center justify-center shrink-0"
+           style="background: var(--accent-glow); border: 1px solid rgba(74,222,128,0.3);">
+        <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2L2 5v4c0 3.3 2.5 5.8 6 6 3.5-.2 6-2.7 6-6V5L8 2z"
+                fill="none" stroke="#4ade80" stroke-width="1.2"/>
+          <path d="M8 5v6M5.5 7.5h5" stroke="#4ade80" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      @if (sidebarOpen()) {
+        <span class="text-sm font-semibold tracking-tight whitespace-nowrap overflow-hidden"
+              style="color: var(--text);">
+          Vigia<span style="color: var(--accent);">SUS</span>
+        </span>
+      }
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5 px-2">
+      <!-- Main nav -->
+      @for (item of navItems; track item.path) {
+        <a [routerLink]="item.path"
+           routerLinkActive="active-nav"
+           [routerLinkActiveOptions]="{ exact: !!item.exact }"
+           class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-all duration-150"
+           style="color: var(--text-muted); text-decoration: none;"
+           onmouseover="if(!this.classList.contains('active-nav')) { this.style.background='var(--surface-3)'; this.style.color='var(--text)'; }"
+           onmouseout="if(!this.classList.contains('active-nav')) { this.style.background=''; this.style.color='var(--text-muted)'; }">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" [attr.d]="item.iconPath"/>
+          </svg>
+          @if (sidebarOpen()) {
+            <span class="whitespace-nowrap overflow-hidden text-ellipsis">{{ item.label }}</span>
+          }
+        </a>
+      }
+
+      <!-- Divider + Entity types -->
+      @if (sidebarOpen()) {
+        <div class="flex items-center gap-2 px-2 mt-4 mb-1">
+          <span class="text-xs mono" style="color: var(--text-muted);">Entidades</span>
+          <div class="flex-1 h-px" style="background: var(--border);"></div>
+        </div>
+      } @else {
+        <div class="my-3 mx-2 h-px" style="background: var(--border);"></div>
+      }
+
+      @for (item of entityItems; track item.path) {
+        <a [routerLink]="item.path.split('?')[0]"
+           routerLinkActive="active-nav"
+           class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-all duration-150"
+           style="color: var(--text-muted); text-decoration: none;"
+           onmouseover="if(!this.classList.contains('active-nav')) { this.style.background='var(--surface-3)'; this.style.color='var(--text)'; }"
+           onmouseout="if(!this.classList.contains('active-nav')) { this.style.background=''; this.style.color='var(--text-muted)'; }">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" [attr.d]="item.iconPath"/>
+          </svg>
+          @if (sidebarOpen()) {
+            <span class="whitespace-nowrap overflow-hidden text-ellipsis">{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <!-- Bottom: toggle + back to landing -->
+    <div class="px-2 py-3 flex flex-col gap-1" style="border-top: 1px solid var(--border);">
+      <a routerLink="/"
+         class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-all duration-150"
+         style="color: var(--text-muted); text-decoration: none;"
+         onmouseover="this.style.background='var(--surface-3)'; this.style.color='var(--text)'"
+         onmouseout="this.style.background=''; this.style.color='var(--text-muted)'">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        @if (sidebarOpen()) {
+          <span class="whitespace-nowrap text-xs">Início</span>
+        }
+      </a>
+      <button (click)="toggleSidebar()"
+              class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full transition-all duration-150"
+              style="color: var(--text-muted); background: none; border: none; cursor: pointer;"
+              onmouseover="this.style.background='var(--surface-3)'; this.style.color='var(--text)'"
+              onmouseout="this.style.background=''; this.style.color='var(--text-muted)'">
+        @if (sidebarOpen()) {
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+          </svg>
+          <span class="whitespace-nowrap text-xs">Recolher</span>
+        } @else {
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+          </svg>
+        }
+      </button>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Top bar -->
+    <header class="flex items-center justify-between px-5 h-12 shrink-0"
+            style="border-bottom: 1px solid var(--border); background: var(--surface);">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 text-xs mono px-2 py-1 rounded"
+             style="background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border);">
+          <span class="w-1.5 h-1.5 rounded-full" style="background: var(--accent);"></span>
+          DATASUS — online
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a routerLink="/app/search"
+           class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors"
+           style="background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); text-decoration: none;"
+           onmouseover="this.style.borderColor='var(--border-2)'; this.style.color='var(--text)'"
+           onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text-muted)'">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          Buscar...
+          <kbd class="text-xs mono px-1 rounded" style="background: var(--surface-3); color: var(--text-muted);">⌘K</kbd>
+        </a>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="flex-1 overflow-auto" style="background: var(--bg);">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<style>
+.active-nav {
+  background: var(--surface-3) !important;
+  color: var(--accent) !important;
+  border-left: 2px solid var(--accent);
+  padding-left: 6px !important;
+}
+</style>
