@@ -31,13 +31,23 @@
                 [style.color]="entity().typeColor">
             {{ entity().type }}
           </span>
+          @if (alerts.length) {
+            <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);">
+              {{ alerts.length }} alertas
+            </span>
+          }
         </div>
         <div class="flex items-center gap-3 mt-0.5 flex-wrap">
           <span class="text-xs mono" style="color: var(--text-muted);">{{ entity().code }}</span>
           <span style="color: var(--border-2);">·</span>
           <span class="text-xs" style="color: var(--text-muted);">{{ entity().city }} — {{ entity().state }}</span>
-          <span style="color: var(--border-2);">·</span>
-          <span class="text-xs" style="color: var(--text-muted);">{{ entity().beds }}</span>
+          @if (totalDesviado > 0) {
+            <span style="color: var(--border-2);">·</span>
+            <span class="text-xs font-semibold mono" style="color: #ef4444;">
+              ≈ R$ {{ totalDesviado }}M desviados (est.)
+            </span>
+          }
         </div>
       </div>
 
@@ -58,12 +68,15 @@
     <div class="flex gap-1 mt-4 -mb-4">
       @for (tab of tabs; track tab.value) {
         <button (click)="setTab(tab.value)"
-                class="px-3 py-2 text-xs font-medium transition-all duration-150 rounded-t-lg"
+                class="relative px-3 py-2 text-xs font-medium transition-all duration-150 rounded-t-lg flex items-center gap-1.5"
                 [style.color]="activeTab() === tab.value ? 'var(--accent)' : 'var(--text-muted)'"
                 [style.borderBottom]="activeTab() === tab.value ? '2px solid var(--accent)' : '2px solid transparent'"
                 [style.background]="activeTab() === tab.value ? 'var(--accent-glow)' : 'none'"
                 style="cursor: pointer; border-left: none; border-right: none; border-top: none;">
           {{ tab.label }}
+          @if (tab.alert && alerts.length) {
+            <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background: #ef4444;"></span>
+          }
         </button>
       }
     </div>
@@ -77,29 +90,68 @@
       <div class="flex h-full">
         <!-- Graph -->
         <div class="flex-1 relative">
+          @if (loading()) {
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="flex flex-col items-center gap-3">
+                <div class="w-6 h-6 rounded-full border-2 animate-spin"
+                     style="border-color: var(--border-2); border-top-color: var(--accent);"></div>
+                <span class="text-xs mono" style="color: var(--text-muted);">carregando grafo...</span>
+              </div>
+            </div>
+          }
           <div #cytoscapeContainer class="w-full h-full" style="background: var(--bg);"></div>
+
           <!-- Legend -->
           <div class="absolute bottom-4 left-4 p-3 rounded-xl text-xs"
-               style="background: rgba(17,21,18,0.9); border: 1px solid var(--border); backdrop-filter: blur(8px);">
+               style="background: rgba(17,21,18,0.92); border: 1px solid var(--border); backdrop-filter: blur(8px); min-width: 170px;">
             <p class="font-semibold mono mb-2" style="color: var(--text-muted);">legenda</p>
             @for (item of [
-              { color: '#4ade80', label: 'Hospital / Centro' },
-              { color: '#34d399', label: 'UBS / APS' },
-              { color: '#a78bfa', label: 'Ensino / Pesquisa' },
-              { color: '#fb923c', label: 'Governo / FNS' },
-              { color: '#60a5fa', label: 'Instituto' },
-              { color: '#f87171', label: 'Urgência' },
+              { color: '#4ade80', label: 'Hospital / Estabelecimento',  shape: 'circle' },
+              { color: '#fb923c', label: 'Governo / FNS',               shape: 'circle' },
+              { color: '#60a5fa', label: 'Instituto / Especializado',   shape: 'circle' },
+              { color: '#a78bfa', label: 'Ensino / Pesquisa',           shape: 'circle' },
+              { color: '#34d399', label: 'UBS / Atenção Básica',        shape: 'circle' },
+              { color: '#ef4444', label: 'Empresa suspeita',            shape: 'diamond' },
+              { color: '#dc2626', label: 'Lavagem / Offshore',          shape: 'pentagon' },
             ]; track item.label) {
               <div class="flex items-center gap-2 mb-1">
-                <span class="w-2.5 h-2.5 rounded-full shrink-0" [style.background]="item.color"></span>
+                @if (item.shape === 'diamond') {
+                  <span class="w-2.5 h-2.5 shrink-0 rotate-45" [style.background]="item.color"></span>
+                } @else {
+                  <span class="w-2.5 h-2.5 rounded-full shrink-0" [style.background]="item.color"></span>
+                }
                 <span style="color: var(--text-muted);">{{ item.label }}</span>
               </div>
             }
+            <div class="mt-2 pt-2" style="border-top: 1px solid var(--border);">
+              @for (edge of [
+                { color: 'rgba(74,222,128,0.5)', label: 'Fluxo legítimo', dashed: false },
+                { color: '#f97316',              label: 'Contrato suspeito', dashed: true },
+                { color: '#ef4444',              label: 'Desvio / lavagem',  dashed: true },
+              ]; track edge.label) {
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="w-5 h-0.5 shrink-0" [style.background]="edge.color"
+                        [style.borderTop]="edge.dashed ? '1px dashed ' + edge.color : 'none'"></span>
+                  <span style="color: var(--text-muted);">{{ edge.label }}</span>
+                </div>
+              }
+            </div>
           </div>
+
           <!-- Controls hint -->
           <div class="absolute bottom-4 right-4 text-xs mono"
                style="color: var(--text-muted); opacity: 0.6;">
             scroll para zoom · arrastar para mover
+          </div>
+
+          <!-- Source badge -->
+          <div class="absolute top-3 right-3">
+            <span class="text-xs mono px-2 py-1 rounded-md"
+                  [style.background]="apiSource() === 'api' ? 'rgba(74,222,128,0.1)' : 'rgba(250,204,21,0.1)'"
+                  [style.color]="apiSource() === 'api' ? '#4ade80' : '#facc15'"
+                  [style.border]="apiSource() === 'api' ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(250,204,21,0.3)'">
+              {{ apiSource() === 'api' ? 'DATASUS — ao vivo' : 'dados simulados' }}
+            </span>
           </div>
         </div>
 
@@ -163,31 +215,211 @@
       </div>
     }
 
-    <!-- REPASSES TAB -->
-    @if (activeTab() === 'repasses') {
+    <!-- INVESTIMENTOS TAB -->
+    @if (activeTab() === 'investimentos') {
       <div class="p-6 overflow-y-auto h-full">
         <div class="max-w-3xl">
-          <div class="mb-4 p-3 rounded-lg text-xs" style="background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);">
-            Repasses do Fundo Nacional de Saúde (FNS) para este estabelecimento. Fonte: Portal da Transparência / SIOPS.
+
+          <!-- Summary KPIs -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+              <p class="text-xs mb-1" style="color: var(--text-muted);">Orçado (2020–2024)</p>
+              <p class="text-xl font-bold mono" style="color: var(--accent);">R$ {{ totalOrcado }}M</p>
+            </div>
+            <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+              <p class="text-xs mb-1" style="color: var(--text-muted);">Efetivamente executado</p>
+              <p class="text-xl font-bold mono" style="color: #60a5fa;">R$ {{ totalExecutado }}M</p>
+            </div>
+            <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid rgba(239,68,68,0.3);">
+              <p class="text-xs mb-1" style="color: var(--text-muted);">Estimativa desviada</p>
+              <p class="text-xl font-bold mono" style="color: #ef4444;">R$ {{ totalDesviado }}M</p>
+            </div>
+            <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid rgba(239,68,68,0.2);">
+              <p class="text-xs mb-1" style="color: var(--text-muted);">% do orçado desviado</p>
+              <p class="text-xl font-bold mono" style="color: #f97316;">{{ pctDesviado }}%</p>
+            </div>
           </div>
+
+          <!-- Year-by-year bars -->
+          <div class="rounded-xl overflow-hidden mb-6" style="background: var(--surface); border: 1px solid var(--border);">
+            <div class="px-4 py-3" style="border-bottom: 1px solid var(--border);">
+              <p class="text-xs font-semibold" style="color: var(--text);">Evolução anual do orçamento destinado à saúde</p>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted);">Comparativo: orçado × executado × desviado (R$ milhões)</p>
+            </div>
+            <div class="p-4 flex flex-col gap-5">
+              @for (y of investmentYears; track y.year) {
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-semibold mono" style="color: var(--text);">{{ y.year }}</span>
+                    <span class="text-xs mono" style="color: #ef4444;">−R$ {{ y.desviado }}M desviados</span>
+                  </div>
+                  <!-- Orçado -->
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs w-20 shrink-0" style="color: var(--text-muted);">Orçado</span>
+                    <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--surface-3);">
+                      <div class="h-full rounded-full transition-all" style="background: var(--border-2);"
+                           [style.width]="barWidth(y.orcado, 1100)"></div>
+                    </div>
+                    <span class="text-xs mono w-16 text-right" style="color: var(--text-muted);">R$ {{ y.orcado }}M</span>
+                  </div>
+                  <!-- Executado -->
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs w-20 shrink-0" style="color: var(--text-muted);">Executado</span>
+                    <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--surface-3);">
+                      <div class="h-full rounded-full transition-all" style="background: #60a5fa;"
+                           [style.width]="barWidth(y.executado, 1100)"></div>
+                    </div>
+                    <span class="text-xs mono w-16 text-right" style="color: #60a5fa;">R$ {{ y.executado }}M</span>
+                  </div>
+                  <!-- Desviado -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs w-20 shrink-0" style="color: #ef4444;">Desviado</span>
+                    <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--surface-3);">
+                      <div class="h-full rounded-full transition-all" style="background: #ef4444;"
+                           [style.width]="barWidth(y.desviado, 1100)"></div>
+                    </div>
+                    <span class="text-xs mono w-16 text-right" style="color: #ef4444;">R$ {{ y.desviado }}M</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Repasses table -->
           <div class="rounded-xl overflow-hidden" style="background: var(--surface); border: 1px solid var(--border);">
-            <div class="grid grid-cols-4 px-4 py-2.5 text-xs font-semibold"
-                 style="background: var(--surface-2); border-bottom: 1px solid var(--border); color: var(--text-muted);">
+            <div class="px-4 py-3" style="border-bottom: 1px solid var(--border);">
+              <p class="text-xs font-semibold" style="color: var(--text);">Repasses do FNS por programa</p>
+            </div>
+            <div class="grid px-4 py-2.5 text-xs font-semibold"
+                 style="grid-template-columns: 60px 1fr 110px 80px 80px; gap: 8px; background: var(--surface-2); border-bottom: 1px solid var(--border); color: var(--text-muted);">
               <span>Ano</span>
-              <span class="col-span-2">Programa</span>
+              <span>Programa</span>
               <span>Valor</span>
+              <span>Fonte</span>
+              <span>Status</span>
             </div>
             @for (t of transfers; track t.program + t.year) {
-              <div class="grid grid-cols-4 px-4 py-3 text-xs transition-colors"
-                   style="border-bottom: 1px solid var(--border);"
-                   onmouseover="this.style.background='var(--surface-2)'"
-                   onmouseout="this.style.background=''">
+              <div class="grid px-4 py-3 text-xs items-center transition-colors"
+                   style="grid-template-columns: 60px 1fr 110px 80px 80px; gap: 8px; border-bottom: 1px solid var(--border);"
+                   [style.background]="t.status === 'desviado' ? 'rgba(239,68,68,0.04)' : t.status === 'suspeito' ? 'rgba(249,115,22,0.04)' : ''"
+                   onmouseover="this.style.filter='brightness(1.1)'"
+                   onmouseout="this.style.filter=''">
                 <span class="mono" style="color: var(--text-muted);">{{ t.year }}</span>
-                <span class="col-span-2" style="color: var(--text);">{{ t.program }}</span>
+                <span style="color: var(--text);">{{ t.program }}</span>
                 <span class="font-semibold mono" style="color: var(--accent);">{{ t.value }}</span>
+                <span class="mono" style="color: var(--text-muted);">{{ t.source }}</span>
+                <span class="text-xs px-1.5 py-0.5 rounded-full font-medium text-center"
+                      [style.background]="statusColor(t.status) + '18'"
+                      [style.color]="statusColor(t.status)">
+                  {{ statusLabel(t.status) }}
+                </span>
               </div>
             }
           </div>
+
+        </div>
+      </div>
+    }
+
+    <!-- DESVIOS TAB -->
+    @if (activeTab() === 'desvios') {
+      <div class="p-6 overflow-y-auto h-full">
+        <div class="max-w-3xl">
+
+          <!-- Banner -->
+          <div class="flex items-start gap-3 p-4 rounded-xl mb-6"
+               style="background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25);">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" style="color: #ef4444;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold mb-1" style="color: #ef4444;">Irregularidades identificadas</p>
+              <p class="text-xs leading-relaxed" style="color: var(--text-muted);">
+                Os alertas abaixo foram gerados pelo cruzamento automático de dados do CNES, BNAFAR-HORUS,
+                SIOPS, COMPRASNET e SIHSUS. Padrões suspeitos não constituem prova de irregularidade —
+                recomenda-se encaminhamento ao TCU / CGU para apuração.
+              </p>
+            </div>
+          </div>
+
+          <!-- Alert cards -->
+          <div class="flex flex-col gap-3 mb-6">
+            @for (alert of alerts; track alert.id) {
+              <div class="p-4 rounded-xl transition-all duration-200"
+                   [style.background]="severityColor(alert.severity) + '08'"
+                   [style.border]="'1px solid ' + severityColor(alert.severity) + '30'"
+                   onmouseover="this.style.filter='brightness(1.08)'"
+                   onmouseout="this.style.filter=''">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-start gap-3 flex-1">
+                    <!-- Severity dot -->
+                    <div class="w-2 h-2 rounded-full shrink-0 mt-1.5"
+                         [style.background]="severityColor(alert.severity)"
+                         [style.boxShadow]="'0 0 8px ' + severityColor(alert.severity) + '80'"></div>
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <span class="text-xs font-semibold" style="color: var(--text);">{{ alert.title }}</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded font-bold mono"
+                              [style.background]="severityColor(alert.severity) + '20'"
+                              [style.color]="severityColor(alert.severity)">
+                          {{ severityLabel(alert.severity) }}
+                        </span>
+                      </div>
+                      <p class="text-xs leading-relaxed" style="color: var(--text-muted);">{{ alert.detail }}</p>
+                    </div>
+                  </div>
+                  @if (alert.value) {
+                    <div class="shrink-0 text-right">
+                      <p class="text-sm font-bold mono" style="color: #ef4444;">{{ alert.value }}</p>
+                      <p class="text-xs" style="color: var(--text-muted);">estimado</p>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Fluxo de desvio diagram description -->
+          <div class="rounded-xl overflow-hidden" style="background: var(--surface); border: 1px solid var(--border);">
+            <div class="px-4 py-3" style="border-bottom: 1px solid var(--border);">
+              <p class="text-xs font-semibold" style="color: var(--text);">Fluxo suspeito de lavagem de dinheiro</p>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted);">Reconstruído a partir de COMPRASNET + dados CNPJ + FNS</p>
+            </div>
+            <div class="p-4">
+              <div class="flex items-center gap-2 flex-wrap text-xs">
+                @for (step of [
+                  { label: 'FNS / Ministério da Saúde', color: '#fb923c', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                  { label: 'Repasse ao hospital', color: '#4ade80', icon: '' },
+                  { label: 'Contrato superfaturado', color: '#f97316', icon: '' },
+                  { label: 'Empresa fantasma (CNPJ laranja)', color: '#ef4444', icon: '' },
+                  { label: 'Intermediário / sócio oculto', color: '#dc2626', icon: '' },
+                  { label: 'Conta offshore (BVI / Ilhas Cayman)', color: '#7f1d1d', icon: '' },
+                ]; track step.label; let last = $last) {
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded-md font-medium"
+                          [style.background]="step.color + '18'"
+                          [style.color]="step.color"
+                          [style.border]="'1px solid ' + step.color + '30'">
+                      {{ step.label }}
+                    </span>
+                    @if (!last) {
+                      <svg class="w-3 h-3 shrink-0" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    }
+                  </div>
+                }
+              </div>
+              <p class="text-xs mt-4 leading-relaxed" style="color: var(--text-muted);">
+                Dinheiro destinado ao SUS é convertido em contratos superfaturados com empresas de fachada
+                (sem funcionários, endereço inválido ou CNPJ aberto há menos de 6 meses antes da licitação).
+                O valor é repassado via intermediários e finaliza em contas no exterior, tipificando lavagem
+                de dinheiro (Lei 9.613/1998) e peculato (CP art. 312).
+              </p>
+            </div>
+          </div>
+
         </div>
       </div>
     }
@@ -198,18 +430,24 @@
         <div class="max-w-3xl">
           <div class="grid sm:grid-cols-3 gap-4 mb-6">
             @for (stat of [
-              { label: 'AIHs (2024)',          value: '68.412',     color: '#4ade80' },
-              { label: 'Permanência média',     value: '8.4 dias',   color: '#60a5fa' },
-              { label: 'Custo médio AIH',       value: 'R$ 4.820',   color: '#facc15' },
-              { label: 'Taxa de ocupação',      value: '87%',        color: '#34d399' },
-              { label: 'Cirurgias (2024)',       value: '42.180',     color: '#a78bfa' },
-              { label: 'Óbitos hospitalares',   value: '2.341',      color: '#f87171' },
+              { label: 'AIHs (2024)',        value: '68.412',   color: '#4ade80' },
+              { label: 'Permanência média',  value: '8.4 dias', color: '#60a5fa' },
+              { label: 'Custo médio AIH',    value: 'R$ 4.820', color: '#facc15' },
+              { label: 'Taxa de ocupação',   value: '87%',      color: '#34d399' },
+              { label: 'Cirurgias (2024)',   value: '42.180',   color: '#a78bfa' },
+              { label: 'Óbitos hospitalares',value: '2.341',    color: '#f87171' },
             ]; track stat.label) {
               <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
                 <p class="text-xl font-bold mono mb-1" [style.color]="stat.color">{{ stat.value }}</p>
                 <p class="text-xs" style="color: var(--text-muted);">{{ stat.label }}</p>
               </div>
             }
+          </div>
+          <div class="p-3 rounded-lg text-xs mb-4"
+               style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); color: var(--text-muted);">
+            <span style="color: #ef4444; font-weight: 600;">Anomalia detectada:</span>
+            Pico de AIHs com CID Z76.8 (motivo não especificado) — 1.200% acima da média regional em Q3/2024.
+            Possível cobrança indevida por internações não realizadas (fraude AIH).
           </div>
           <div class="text-xs p-3 rounded-lg" style="background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);">
             Dados agregados do SIHSUS — competência Jan–Dez 2024. Valores sujeitos a revisão pelo gestor.

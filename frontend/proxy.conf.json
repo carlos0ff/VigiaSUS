@@ -1,0 +1,9 @@
+{
+  "/api-gov": {
+    "target": "https://apidadosabertos.saude.gov.br",
+    "changeOrigin": true,
+    "pathRewrite": { "^/api-gov": "" },
+    "secure": true,
+    "logLevel": "info"
+  }
+}

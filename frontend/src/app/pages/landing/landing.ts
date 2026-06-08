@@ -31,10 +31,10 @@ export class LandingComponent {
   private canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('networkCanvas');
 
   stats: Stat[] = [
-    { value: '338k+',  label: 'Estabelecimentos', source: 'CNES' },
-    { value: '2.5M+',  label: 'Profissionais',    source: 'CNES' },
-    { value: '5.570',  label: 'Municípios',        source: 'IBGE' },
-    { value: '1.2bi+', label: 'Internações',       source: 'SIHSUS' },
+    { value: 'R$ 244bi', label: 'Orçamento SUS 2024', source: 'LOA/MS' },
+    { value: 'R$ 20bi+', label: 'Estimativa desviada', source: 'CGU / TCU' },
+    { value: '4.318',    label: 'Casos investigados',  source: 'PGR/PF/CGU' },
+    { value: '338k+',    label: 'Estabelecimentos',    source: 'CNES' },
   ];
 
   features: Feature[] = [
@@ -73,6 +73,12 @@ export class LandingComponent {
       title: 'Internações e AIH',
       description: 'Analise AIHs por hospital, CID-10, tempo de permanência, custo médio e desfechos. Detecte padrões anômalos de cobrança.',
       tag: 'SIHSUS'
+    },
+    {
+      iconPath: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
+      title: 'Detecção de Desvios e Lavagem',
+      description: 'Cruzamento automático de CNPJ, COMPRASNET, FNS e RAIS para identificar empresas fantasma, superfaturamento e fluxos de lavagem de dinheiro.',
+      tag: 'CGU / TCU'
     }
   ];
 
