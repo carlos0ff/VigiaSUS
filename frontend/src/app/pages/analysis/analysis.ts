@@ -3,11 +3,12 @@ import {
   afterNextRender, signal, inject, OnInit,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 import cytoscape from 'cytoscape';
 
 import { CnesService, CnesEstabelecimento, ufFromCode, tipoUnidade } from '../../services/cnes.service';
 import { BnafarService, BnafarItem } from '../../services/bnafar.service';
+import { ApiService, AlertaBackend } from '../../services/api.service';
 
 type Tab = 'grafo' | 'info' | 'investimentos' | 'desvios' | 'internacoes';
 
@@ -43,6 +44,7 @@ export class AnalysisComponent implements OnInit {
 
   private cnesService   = inject(CnesService);
   private bnafarService = inject(BnafarService);
+  private apiService    = inject(ApiService);
   private cytoscapeContainer = viewChild<ElementRef<HTMLDivElement>>('cytoscapeContainer');
   private cy: cytoscape.Core | null = null;
 
@@ -77,12 +79,28 @@ export class AnalysisComponent implements OnInit {
   ngOnInit(): void {
     const cnesCode = this.id() || '2078015';
 
-    forkJoin({
-      estabelecimento: this.cnesService.buscarEstabelecimento(cnesCode),
-      estoque:         this.bnafarService.buscarEstoque(cnesCode),
-    }).subscribe(({ estabelecimento, estoque }) => {
-      if (estabelecimento) {
-        this.buildFromApi(estabelecimento, estoque);
+    // Tenta o backend primeiro (dados reais + alertas detectados).
+    // Se indisponível, cai para DATASUS direto; se também falhar, usa mock.
+    this.apiService.getAnalise(cnesCode).pipe(
+      switchMap(backendData => {
+        if (backendData) {
+          return of({ type: 'backend' as const, data: backendData });
+        }
+        return forkJoin({
+          estabelecimento: this.cnesService.buscarEstabelecimento(cnesCode),
+          estoque:         this.bnafarService.buscarEstoque(cnesCode),
+        }).pipe(
+          switchMap(({ estabelecimento, estoque }) =>
+            of({ type: 'datasus' as const, estabelecimento, estoque })
+          )
+        );
+      })
+    ).subscribe(result => {
+      if (result.type === 'backend') {
+        this.buildFromApi(result.data.cnes, result.data.estoque, result.data.alertas);
+        this.apiSource.set('api');
+      } else if (result.type === 'datasus' && result.estabelecimento) {
+        this.buildFromApi(result.estabelecimento, result.estoque);
         this.apiSource.set('api');
       } else {
         this.buildFromMock();
@@ -92,7 +110,7 @@ export class AnalysisComponent implements OnInit {
     });
   }
 
-  private buildFromApi(est: CnesEstabelecimento, estoque: BnafarItem[]): void {
+  private buildFromApi(est: CnesEstabelecimento, estoque: BnafarItem[], backendAlertas?: AlertaBackend[]): void {
     const uf     = ufFromCode(est.codigo_uf);
     const tipo   = tipoUnidade(est.codigo_tipo_unidade);
     const gestao = {
@@ -135,7 +153,10 @@ export class AnalysisComponent implements OnInit {
     ];
 
     this.buildInvestmentData();
-    this.alerts = [];
+    this.alerts = (backendAlertas ?? []).map(a => ({
+      id: a.id, severity: a.severidade,
+      title: a.titulo, detail: a.detalhe, value: a.valor,
+    }));
 
     const centerLabel = (est.nome_fantasia || est.nome_razao_social).split(' ').slice(0, 3).join(' ');
     const nodes: cytoscape.NodeDefinition[] = [

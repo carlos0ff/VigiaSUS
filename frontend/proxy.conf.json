@@ -4,6 +4,11 @@
     "changeOrigin": true,
     "pathRewrite": { "^/api-gov": "" },
     "secure": true,
-    "logLevel": "info"
+    "logLevel": "warn"
+  },
+  "/api": {
+    "target": "http://localhost:8080",
+    "changeOrigin": true,
+    "logLevel": "warn"
   }
 }
