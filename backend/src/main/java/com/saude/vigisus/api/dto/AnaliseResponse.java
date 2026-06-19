@@ -1,7 +1,7 @@
-package com.saude.vigisus.api;
+package com.saude.vigisus.api.dto;
 
-import com.saude.vigisus.datasus.BnafarResponse.BnafarItem;
-import com.saude.vigisus.datasus.CnesResponse;
+import com.saude.vigisus.client.cnes.BnafarResponse.BnafarItem;
+import com.saude.vigisus.client.cnes.CnesResponse;
 import java.util.List;
 
 public record AnaliseResponse(
@@ -26,7 +26,7 @@ public record AnaliseResponse(
 
     }
 
-    public record TcuDto(String status, boolean sancionado, int totalOcorrencias) 
+    public record TcuDto(String status, boolean sancionado, int totalOcorrencias)
     {
         public static TcuDto indisponivel() {
             return new TcuDto("indisponivel", false, 0);

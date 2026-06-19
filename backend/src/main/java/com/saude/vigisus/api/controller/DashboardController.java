@@ -1,4 +1,4 @@
-package com.saude.vigisus.api;
+package com.saude.vigisus.api.controller;
 
 import com.saude.vigisus.repository.AlertaRepository;
 import com.saude.vigisus.repository.EstabelecimentoRepository;
@@ -11,7 +11,7 @@ public class DashboardController {
     private final EstabelecimentoRepository estRepository;
     private final AlertaRepository alertaRepository;
 
-    public DashboardController(EstabelecimentoRepository estRepository, AlertaRepository alertaRepository) 
+    public DashboardController(EstabelecimentoRepository estRepository, AlertaRepository alertaRepository)
     {
         this.estRepository = estRepository;
         this.alertaRepository = alertaRepository;
@@ -37,6 +37,6 @@ public class DashboardController {
         long alertasBaixo,
         long estabelecimentosComAlerta
     ) {
-        
+
     }
 }

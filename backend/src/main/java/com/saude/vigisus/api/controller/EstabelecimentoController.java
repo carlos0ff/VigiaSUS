@@ -1,5 +1,6 @@
-package com.saude.vigisus.api;
+package com.saude.vigisus.api.controller;
 
+import com.saude.vigisus.api.dto.AnaliseResponse;
 import com.saude.vigisus.service.EstabelecimentoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

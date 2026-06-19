@@ -1,9 +1,9 @@
 package com.saude.vigisus.service;
 
-import com.saude.vigisus.datasus.BnafarResponse.BnafarItem;
-import com.saude.vigisus.datasus.CnesResponse;
-import com.saude.vigisus.datasus.TcuResponse;
-import com.saude.vigisus.datasus.TransparenciaItem;
+import com.saude.vigisus.client.cnes.BnafarResponse.BnafarItem;
+import com.saude.vigisus.client.cnes.CnesResponse;
+import com.saude.vigisus.client.tcu.TcuResponse;
+import com.saude.vigisus.client.transparencia.TransparenciaItem;
 import com.saude.vigisus.domain.Alerta;
 import com.saude.vigisus.domain.Estabelecimento;
 import org.springframework.stereotype.Component;

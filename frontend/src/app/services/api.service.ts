@@ -1,55 +1,9 @@
-/**
- * Serviço que consome o backend VigiaSUS.
- * Retorna dados enriquecidos: CNES + BNAFAR + alertas detectados + cache info.
- * Fallback automático para null quando o backend não está disponível.
- */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError } from 'rxjs';
-import { CnesEstabelecimento } from './cnes.service';
-import { BnafarItem } from './bnafar.service';
+import { AnaliseBackend, DashboardStats } from '../models';
 
-export interface AlertaBackend {
-  id: string;
-  severidade: 'alto' | 'medio' | 'baixo';
-  titulo: string;
-  detalhe: string;
-  valor?: string;
-}
-
-export interface DespesaDto {
-  ano: string;
-  mes: string;
-  tipoDocumento: string;
-  valorPago: number | null;
-  funcao: string | null;
-  orgao: string | null;
-}
-
-export interface TcuDto {
-  status: 'limpo' | 'sancionado' | 'indisponivel';
-  sancionado: boolean;
-  totalOcorrencias: number;
-}
-
-export interface AnaliseBackend {
-  cnes: CnesEstabelecimento;
-  estoque: BnafarItem[];
-  alertas: AlertaBackend[];
-  despesas: DespesaDto[];
-  tcu: TcuDto;
-  fonte: 'live' | 'cache';
-  sincronizado: string;
-}
-
-export interface DashboardStats {
-  totalEstabelecimentos: number;
-  totalAlertas: number;
-  alertasAlto: number;
-  alertasMedio: number;
-  alertasBaixo: number;
-  estabelecimentosComAlerta: number;
-}
+export type { AlertaBackend, DespesaDto, TcuDto, AnaliseBackend, DashboardStats } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {

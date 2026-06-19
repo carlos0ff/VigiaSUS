@@ -1,16 +1,16 @@
 package com.saude.vigisus.service;
 
-import com.saude.vigisus.api.AnaliseResponse;
-import com.saude.vigisus.api.AnaliseResponse.AlertaDto;
-import com.saude.vigisus.api.AnaliseResponse.DespesaDto;
-import com.saude.vigisus.api.AnaliseResponse.TcuDto;
-import com.saude.vigisus.datasus.BnafarResponse.BnafarItem;
-import com.saude.vigisus.datasus.CnesResponse;
-import com.saude.vigisus.datasus.DatasusClient;
-import com.saude.vigisus.datasus.TcuClient;
-import com.saude.vigisus.datasus.TcuResponse;
-import com.saude.vigisus.datasus.TransparenciaClient;
-import com.saude.vigisus.datasus.TransparenciaItem;
+import com.saude.vigisus.api.dto.AnaliseResponse;
+import com.saude.vigisus.api.dto.AnaliseResponse.AlertaDto;
+import com.saude.vigisus.api.dto.AnaliseResponse.DespesaDto;
+import com.saude.vigisus.api.dto.AnaliseResponse.TcuDto;
+import com.saude.vigisus.client.cnes.BnafarResponse.BnafarItem;
+import com.saude.vigisus.client.cnes.CnesResponse;
+import com.saude.vigisus.client.cnes.DatasusClient;
+import com.saude.vigisus.client.tcu.TcuClient;
+import com.saude.vigisus.client.tcu.TcuResponse;
+import com.saude.vigisus.client.transparencia.TransparenciaClient;
+import com.saude.vigisus.client.transparencia.TransparenciaItem;
 import com.saude.vigisus.domain.Alerta;
 import com.saude.vigisus.domain.Estabelecimento;
 import com.saude.vigisus.domain.ItemEstoque;

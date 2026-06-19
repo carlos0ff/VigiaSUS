@@ -6,9 +6,10 @@ import { RouterLink } from '@angular/router';
 import { forkJoin, of, switchMap } from 'rxjs';
 import cytoscape from 'cytoscape';
 
-import { CnesService, CnesEstabelecimento, ufFromCode, tipoUnidade } from '../../services/cnes.service';
-import { BnafarService, BnafarItem } from '../../services/bnafar.service';
-import { ApiService, AlertaBackend, DespesaDto, TcuDto } from '../../services/api.service';
+import { CnesService } from '../../services/cnes.service';
+import { BnafarService } from '../../services/bnafar.service';
+import { ApiService } from '../../services/api.service';
+import { CnesEstabelecimento, ufFromCode, tipoUnidade, BnafarItem, AlertaBackend, DespesaDto, TcuDto } from '../../models';
 
 type Tab = 'grafo' | 'info' | 'investimentos' | 'desvios' | 'internacoes';
 

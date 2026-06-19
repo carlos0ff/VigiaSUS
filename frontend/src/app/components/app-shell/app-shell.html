@@ -110,12 +110,26 @@
     <!-- Top bar -->
     <header class="flex items-center justify-between px-5 h-12 shrink-0"
             style="border-bottom: 1px solid var(--border); background: var(--surface);">
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5 text-xs mono px-2 py-1 rounded"
-             style="background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border);">
-          <span class="w-1.5 h-1.5 rounded-full" style="background: var(--accent);"></span>
-          DATASUS — online
-        </div>
+      <div class="flex items-center gap-2">
+        @if (backendOnline() === null) {
+          <div class="flex items-center gap-1.5 text-xs mono px-2 py-1 rounded"
+               style="background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border);">
+            <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: var(--text-muted);"></span>
+            verificando...
+          </div>
+        } @else if (backendOnline()) {
+          <div class="flex items-center gap-1.5 text-xs mono px-2 py-1 rounded"
+               style="background: rgba(74,222,128,0.08); color: var(--accent); border: 1px solid rgba(74,222,128,0.25);">
+            <span class="w-1.5 h-1.5 rounded-full animate-pulse-glow" style="background: var(--accent);"></span>
+            backend online
+          </div>
+        } @else {
+          <div class="flex items-center gap-1.5 text-xs mono px-2 py-1 rounded"
+               style="background: rgba(239,68,68,0.08); color: #ef4444; border: 1px solid rgba(239,68,68,0.25);">
+            <span class="w-1.5 h-1.5 rounded-full" style="background: #ef4444;"></span>
+            backend offline
+          </div>
+        }
       </div>
       <div class="flex items-center gap-2">
         <a routerLink="/app/search"

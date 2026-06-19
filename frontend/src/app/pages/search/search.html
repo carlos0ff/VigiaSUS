@@ -52,6 +52,32 @@
     }
   </div>
 
+  <!-- Direct CNES shortcut -->
+  @if (cnesDirectId()) {
+    <a [routerLink]="['/app/analysis', cnesDirectId()]"
+       class="flex items-center gap-3 p-4 rounded-xl mb-4 transition-all duration-150"
+       style="background: var(--accent-glow); border: 1px solid rgba(74,222,128,0.3); text-decoration: none;"
+       onmouseover="this.style.borderColor='rgba(74,222,128,0.5)'"
+       onmouseout="this.style.borderColor='rgba(74,222,128,0.3)'">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+           style="background: rgba(74,222,128,0.2); border: 1px solid rgba(74,222,128,0.3);">
+        <svg class="w-4 h-4" style="color: var(--accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <div class="flex-1">
+        <p class="text-sm font-semibold" style="color: var(--accent);">Analisar CNES {{ cnesDirectId() }}</p>
+        <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+          Consultar CNES, BNAFAR, Portal da Transparência e TCU para este estabelecimento →
+        </p>
+      </div>
+      <svg class="w-4 h-4 shrink-0" style="color: var(--accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  }
+
   <!-- Results -->
   @if (!hasSearched()) {
     <!-- Empty state -->

@@ -56,6 +56,11 @@ export class SearchComponent implements OnInit {
     { id: 'CID002',  name: 'J18 — Pneumonia por microrganismo NE',    type: 'Agravo / CID',   typeColor: '#f87171', code: 'CID-10 J18',    city: '—',             state: '—',  extra: 'Doenças respiratórias · SINAN / SIM' },
   ];
 
+  cnesDirectId = computed(() => {
+    const q = this.query().trim();
+    return /^\d{5,7}$/.test(q) ? q : null;
+  });
+
   results = computed(() => {
     const q    = this.query().toLowerCase().trim();
     const type = this.activeType();
