@@ -25,18 +25,18 @@ public class ItemEstoque {
     @Column(name = "quantidade_estoque")
     private Integer quantidadeEstoque;
 
-    @Column(name = "sigla_programa_saude", length = 20)
+    @Column(name = "sigla_programa_saude", length = 100)
     private String siglaProgramaSaude;
 
-    @Column(name = "descricao_programa_saude", length = 255)
+    @Column(name = "descricao_programa_saude", length = 500)
     private String descricaoProgramaSaude;
 
-    @Column(name = "sigla_sistema_origem", length = 20)
+    @Column(name = "sigla_sistema_origem", length = 100)
     private String siglaSistemaOrigem;
 
-    @Column(name = "data_posicao_estoque", length = 20)
+    @Column(name = "data_posicao_estoque", length = 50)
     private String dataPosicaoEstoque;
 
-    @Column(name = "data_validade", length = 20)
+    @Column(name = "data_validade", length = 50)
     private String dataValidade;
 }
