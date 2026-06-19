@@ -16,8 +16,6 @@ public class EstabelecimentoController {
 
     @GetMapping("/{codigoCnes}")
     public ResponseEntity<AnaliseResponse> analisar(@PathVariable String codigoCnes) {
-        return service.analisar(codigoCnes)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return service.analisar(codigoCnes).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 }

@@ -11,8 +11,8 @@ public class DashboardController {
     private final EstabelecimentoRepository estRepository;
     private final AlertaRepository alertaRepository;
 
-    public DashboardController(EstabelecimentoRepository estRepository,
-                               AlertaRepository alertaRepository) {
+    public DashboardController(EstabelecimentoRepository estRepository, AlertaRepository alertaRepository) 
+    {
         this.estRepository = estRepository;
         this.alertaRepository = alertaRepository;
     }
@@ -30,11 +30,13 @@ public class DashboardController {
     }
 
     public record Stats(
-            long totalEstabelecimentos,
-            long totalAlertas,
-            long alertasAlto,
-            long alertasMedio,
-            long alertasBaixo,
-            long estabelecimentosComAlerta
-    ) {}
+        long totalEstabelecimentos,
+        long totalAlertas,
+        long alertasAlto,
+        long alertasMedio,
+        long alertasBaixo,
+        long estabelecimentosComAlerta
+    ) {
+        
+    }
 }

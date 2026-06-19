@@ -17,10 +17,27 @@ export interface AlertaBackend {
   valor?: string;
 }
 
+export interface DespesaDto {
+  ano: string;
+  mes: string;
+  tipoDocumento: string;
+  valorPago: number | null;
+  funcao: string | null;
+  orgao: string | null;
+}
+
+export interface TcuDto {
+  status: 'limpo' | 'sancionado' | 'indisponivel';
+  sancionado: boolean;
+  totalOcorrencias: number;
+}
+
 export interface AnaliseBackend {
   cnes: CnesEstabelecimento;
   estoque: BnafarItem[];
   alertas: AlertaBackend[];
+  despesas: DespesaDto[];
+  tcu: TcuDto;
   fonte: 'live' | 'cache';
   sincronizado: string;
 }

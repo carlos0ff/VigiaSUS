@@ -2,9 +2,15 @@ package com.saude.vigisus.service;
 
 import com.saude.vigisus.api.AnaliseResponse;
 import com.saude.vigisus.api.AnaliseResponse.AlertaDto;
+import com.saude.vigisus.api.AnaliseResponse.DespesaDto;
+import com.saude.vigisus.api.AnaliseResponse.TcuDto;
 import com.saude.vigisus.datasus.BnafarResponse.BnafarItem;
 import com.saude.vigisus.datasus.CnesResponse;
 import com.saude.vigisus.datasus.DatasusClient;
+import com.saude.vigisus.datasus.TcuClient;
+import com.saude.vigisus.datasus.TcuResponse;
+import com.saude.vigisus.datasus.TransparenciaClient;
+import com.saude.vigisus.datasus.TransparenciaItem;
 import com.saude.vigisus.domain.Alerta;
 import com.saude.vigisus.domain.Estabelecimento;
 import com.saude.vigisus.domain.ItemEstoque;
@@ -42,6 +48,8 @@ public class EstabelecimentoService {
     );
 
     private final DatasusClient datasusClient;
+    private final TransparenciaClient transparenciaClient;
+    private final TcuClient tcuClient;
     private final EstabelecimentoRepository estRepository;
     private final ItemEstoqueRepository estoqueRepository;
     private final AlertaRepository alertaRepository;
@@ -50,12 +58,16 @@ public class EstabelecimentoService {
 
     public EstabelecimentoService(
             DatasusClient datasusClient,
+            TransparenciaClient transparenciaClient,
+            TcuClient tcuClient,
             EstabelecimentoRepository estRepository,
             ItemEstoqueRepository estoqueRepository,
             AlertaRepository alertaRepository,
             EstabelecimentoNodeRepository nodeRepository,
             AlertaDetector alertaDetector) {
         this.datasusClient = datasusClient;
+        this.transparenciaClient = transparenciaClient;
+        this.tcuClient = tcuClient;
         this.estRepository = estRepository;
         this.estoqueRepository = estoqueRepository;
         this.alertaRepository = alertaRepository;
@@ -71,30 +83,39 @@ public class EstabelecimentoService {
             return Optional.of(montarResponseDoCache(cached.get()));
         }
 
-        // 2. Busca ao vivo no DATASUS
+        // 2. Busca CNES + BNAFAR ao vivo
         Optional<CnesResponse> cnesOpt = datasusClient.buscarEstabelecimento(codigoCnes);
         if (cnesOpt.isEmpty()) {
-            // Retorna do cache mesmo expirado, se existir
             return cached.map(this::montarResponseDoCache);
         }
 
         CnesResponse cnes = cnesOpt.get();
         List<BnafarItem> estoque = datasusClient.buscarEstoque(codigoCnes);
 
-        // 3. Persiste/atualiza no PostgreSQL
+        // 3. Busca Transparência + TCU pelo CNPJ (sempre ao vivo)
+        String cnpj = cnes.numero_cnpj();
+        List<TransparenciaItem> despesas = transparenciaClient.buscarDespesas(cnpj);
+        Optional<TcuResponse> tcuOpt = tcuClient.verificarCnpj(cnpj);
+
+        // 4. Persiste/atualiza no PostgreSQL
         Estabelecimento est = persistirEstabelecimento(cached, cnes, estoque);
 
-        // 4. Detecta alertas
+        // 5. Detecta alertas (CNES + BNAFAR + Transparência + TCU)
         alertaRepository.deleteByEstabelecimento(est);
-        List<Alerta> alertas = alertaDetector.detectar(est, cnes, estoque);
+        List<Alerta> alertas = alertaDetector.detectar(est, cnes, estoque, despesas, tcuOpt);
         alertaRepository.saveAll(alertas);
 
-        // 5. Atualiza grafo no Neo4j
+        // 6. Atualiza grafo no Neo4j
         persistirNoGrafo(est, alertas.size());
 
-        log.info("Estabelecimento {} analisado ao vivo. {} alertas detectados.", codigoCnes, alertas.size());
+        log.info("Estabelecimento {} analisado ao vivo. {} alertas. {} despesas. TCU: {}.",
+                codigoCnes, alertas.size(), despesas.size(),
+                tcuOpt.map(t -> t.inidoneidade() ? "SANCIONADO" : "limpo").orElse("indisponível"));
 
-        return Optional.of(montarResponse(cnes, estoque, alertas, "live", est.getSincronizadoEm()));
+        TcuDto tcuDto = mapTcu(tcuOpt);
+        List<DespesaDto> despesaDtos = mapDespesas(despesas);
+
+        return Optional.of(montarResponse(cnes, estoque, alertas, despesaDtos, tcuDto, "live", est.getSincronizadoEm()));
     }
 
     // ── Persistência ────────────────────────────────────────────
@@ -102,7 +123,6 @@ public class EstabelecimentoService {
     private Estabelecimento persistirEstabelecimento(
             Optional<Estabelecimento> existing, CnesResponse cnes, List<BnafarItem> estoque) {
 
-        String uf = UF_MAP.getOrDefault(cnes.codigo_uf(), String.valueOf(cnes.codigo_uf()));
         String endereco = Stream.of(
                         cnes.endereco_estabelecimento(),
                         cnes.numero_estabelecimento(),
@@ -128,7 +148,6 @@ public class EstabelecimentoService {
         est.setSincronizadoEm(Instant.now());
         estRepository.save(est);
 
-        // Recarrega itens de estoque
         estoqueRepository.deleteByEstabelecimento(est);
         List<ItemEstoque> itens = estoque.stream().map(i -> ItemEstoque.builder()
                 .estabelecimento(est)
@@ -164,6 +183,26 @@ public class EstabelecimentoService {
         }
     }
 
+    // ── Mapeamento de DTOs ──────────────────────────────────────
+
+    private TcuDto mapTcu(Optional<TcuResponse> tcuOpt) {
+        return tcuOpt.map(tcu -> tcu.inidoneidade()
+                ? TcuDto.sancionado(tcu.ocorrencias() != null ? tcu.ocorrencias().size() : 1)
+                : TcuDto.limpo())
+                .orElse(TcuDto.indisponivel());
+    }
+
+    private List<DespesaDto> mapDespesas(List<TransparenciaItem> despesas) {
+        return despesas.stream().map(d -> new DespesaDto(
+                d.ano(),
+                d.mes(),
+                d.tipoDocumento(),
+                d.valorPago(),
+                d.funcao() != null ? d.funcao().descricao() : null,
+                d.orgaoSuperior() != null ? d.orgaoSuperior().descricao() : null
+        )).toList();
+    }
+
     // ── Montagem do DTO ─────────────────────────────────────────
 
     private AnaliseResponse montarResponseDoCache(Estabelecimento est) {
@@ -190,12 +229,19 @@ public class EstabelecimentoService {
                 est.getNaturezaJuridica(), est.getDataAtualizacaoCnes()
         );
 
-        return montarResponse(cnes, estoque, alertas, "cache", est.getSincronizadoEm());
+        // Transparência + TCU são sempre ao vivo; do cache, retorna indisponível
+        String cnpj = est.getNumeroCnpj();
+        List<TransparenciaItem> despesas = transparenciaClient.buscarDespesas(cnpj);
+        Optional<TcuResponse> tcuOpt = tcuClient.verificarCnpj(cnpj);
+
+        return montarResponse(cnes, estoque, alertas, mapDespesas(despesas), mapTcu(tcuOpt),
+                "cache", est.getSincronizadoEm());
     }
 
     private AnaliseResponse montarResponse(
             CnesResponse cnes, List<BnafarItem> estoque,
-            List<Alerta> alertas, String fonte, Instant sincronizado) {
+            List<Alerta> alertas, List<DespesaDto> despesas, TcuDto tcu,
+            String fonte, Instant sincronizado) {
 
         List<AlertaDto> alertaDtos = alertas.stream().map(a -> new AlertaDto(
                 String.valueOf(a.getId()),
@@ -205,7 +251,7 @@ public class EstabelecimentoService {
                 a.getValorEstimado()
         )).toList();
 
-        return new AnaliseResponse(cnes, estoque, alertaDtos, fonte, sincronizado.toString());
+        return new AnaliseResponse(cnes, estoque, alertaDtos, despesas, tcu, fonte, sincronizado.toString());
     }
 
     private boolean cacheExpirado(Estabelecimento est) {

@@ -8,7 +8,7 @@ import cytoscape from 'cytoscape';
 
 import { CnesService, CnesEstabelecimento, ufFromCode, tipoUnidade } from '../../services/cnes.service';
 import { BnafarService, BnafarItem } from '../../services/bnafar.service';
-import { ApiService, AlertaBackend } from '../../services/api.service';
+import { ApiService, AlertaBackend, DespesaDto, TcuDto } from '../../services/api.service';
 
 type Tab = 'grafo' | 'info' | 'investimentos' | 'desvios' | 'internacoes';
 
@@ -53,6 +53,7 @@ export class AnalysisComponent implements OnInit {
   apiSource = signal<'api' | 'mock'>('mock');
 
   entity      = signal({ ...MOCK_ENTITY });
+  tcu         = signal<TcuDto | null>(null);
   connections: Connection[] = [];
   transfers:   Transfer[]   = [];
   alerts:      Alert[]      = [];
@@ -97,7 +98,7 @@ export class AnalysisComponent implements OnInit {
       })
     ).subscribe(result => {
       if (result.type === 'backend') {
-        this.buildFromApi(result.data.cnes, result.data.estoque, result.data.alertas);
+        this.buildFromApi(result.data.cnes, result.data.estoque, result.data.alertas, result.data.despesas, result.data.tcu);
         this.apiSource.set('api');
       } else if (result.type === 'datasus' && result.estabelecimento) {
         this.buildFromApi(result.estabelecimento, result.estoque);
@@ -110,7 +111,13 @@ export class AnalysisComponent implements OnInit {
     });
   }
 
-  private buildFromApi(est: CnesEstabelecimento, estoque: BnafarItem[], backendAlertas?: AlertaBackend[]): void {
+  private buildFromApi(
+    est: CnesEstabelecimento,
+    estoque: BnafarItem[],
+    backendAlertas?: AlertaBackend[],
+    despesas?: DespesaDto[],
+    tcuDto?: TcuDto,
+  ): void {
     const uf     = ufFromCode(est.codigo_uf);
     const tipo   = tipoUnidade(est.codigo_tipo_unidade);
     const gestao = {
@@ -134,13 +141,26 @@ export class AnalysisComponent implements OnInit {
       ehr: '—', urgency: '—',
     });
 
-    this.transfers = estoque.slice(0, 10).map(m => ({
-      year:    m.data_posicao_estoque?.split('-')[0] ?? '—',
-      program: m.descricao_produto ?? m.codigo_catmat,
-      value:   `${m.quantidade_estoque} un.`,
-      source:  m.sigla_sistema_origem ?? 'BNAFAR',
-      status:  'normal' as const,
-    }));
+    if (despesas && despesas.length > 0) {
+      this.transfers = despesas.map(d => ({
+        year:    d.ano ?? '—',
+        program: d.funcao ?? d.tipoDocumento ?? '—',
+        value:   d.valorPago != null
+          ? `R$ ${d.valorPago.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : '—',
+        source:  d.orgao ?? 'Transparência',
+        status:  'normal' as const,
+      }));
+    } else {
+      this.transfers = estoque.slice(0, 10).map(m => ({
+        year:    m.data_posicao_estoque?.split('-')[0] ?? '—',
+        program: m.descricao_produto ?? m.codigo_catmat,
+        value:   `${m.quantidade_estoque} un.`,
+        source:  m.sigla_sistema_origem ?? 'BNAFAR',
+        status:  'normal' as const,
+      }));
+    }
+    this.tcu.set(tcuDto ?? null);
 
     this.connections = [
       { id: 'uf',   label: `Estado — ${uf}`, type: 'Estado',  typeColor: '#60a5fa', rel: 'Unidade federativa' },

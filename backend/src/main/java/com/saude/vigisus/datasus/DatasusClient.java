@@ -2,6 +2,7 @@ package com.saude.vigisus.datasus;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -16,8 +17,8 @@ public class DatasusClient {
 
     private final RestClient restClient;
 
-    public DatasusClient(RestClient datasusRestClient) {
-        this.restClient = datasusRestClient;
+    public DatasusClient(@Qualifier("datasusRestClient") RestClient restClient) {
+        this.restClient = restClient;
     }
 
     public Optional<CnesResponse> buscarEstabelecimento(String codigoCnes) {

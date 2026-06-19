@@ -2,6 +2,8 @@ package com.saude.vigisus.service;
 
 import com.saude.vigisus.datasus.BnafarResponse.BnafarItem;
 import com.saude.vigisus.datasus.CnesResponse;
+import com.saude.vigisus.datasus.TcuResponse;
+import com.saude.vigisus.datasus.TransparenciaItem;
 import com.saude.vigisus.domain.Alerta;
 import com.saude.vigisus.domain.Estabelecimento;
 import org.springframework.stereotype.Component;
@@ -12,20 +14,26 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
 public class AlertaDetector {
 
-    // Tipos de unidade que normalmente dispensam medicamentos
     private static final Set<Integer> TIPOS_COM_FARMACIA = Set.of(1, 2, 4, 5, 7, 15, 20, 39, 43, 71, 76);
-
-    // Limite de dias sem atualizar antes de sinalizar
     private static final long DIAS_SEM_ATUALIZACAO = 365;
 
-    public List<Alerta> detectar(Estabelecimento est, CnesResponse cnes, List<BnafarItem> estoque) {
+    public List<Alerta> detectar(
+            Estabelecimento est,
+            CnesResponse cnes,
+            List<BnafarItem> estoque,
+            List<TransparenciaItem> despesas,
+            Optional<TcuResponse> tcuOpt) {
+
         List<Alerta> alertas = new ArrayList<>();
 
+        detectarSancoesTcu(est, tcuOpt, alertas);
+        detectarGastosPublicosElevados(est, cnes, despesas, alertas);
         detectarTipoIncompativelComEstoque(est, cnes, estoque, alertas);
         detectarSusInativoComEstoqueSus(est, cnes, estoque, alertas);
         detectarDadosDesatualizados(est, cnes, alertas);
@@ -33,6 +41,62 @@ public class AlertaDetector {
         detectarEstoqueExcessivo(est, cnes, estoque, alertas);
 
         return alertas;
+    }
+
+    private void detectarSancoesTcu(
+            Estabelecimento est, Optional<TcuResponse> tcuOpt, List<Alerta> alertas) {
+
+        tcuOpt.ifPresent(tcu -> {
+            if (!tcu.inidoneidade()) return;
+            int total = tcu.ocorrencias() != null ? tcu.ocorrencias().size() : 1;
+            String detalhe = tcu.ocorrencias() != null && !tcu.ocorrencias().isEmpty()
+                    ? tcu.ocorrencias().stream()
+                        .map(o -> o.tipo() + ": " + o.descricao())
+                        .reduce((a, b) -> a + " | " + b)
+                        .orElse("Inidoneidade registrada no TCU.")
+                    : "CNPJ consta como inidôneo no cadastro de fornecedores do TCU (APF).";
+
+            alertas.add(Alerta.builder()
+                    .estabelecimento(est)
+                    .severidade("alto")
+                    .tipo("CNPJ_SANCIONADO_TCU")
+                    .titulo("CNPJ sancionado pelo TCU — inidoneidade registrada")
+                    .detalhe(String.format(
+                            "%d ocorrência(s) registrada(s) no TCU: %s",
+                            total, detalhe))
+                    .criadoEm(Instant.now())
+                    .build());
+        });
+    }
+
+    private void detectarGastosPublicosElevados(
+            Estabelecimento est, CnesResponse cnes,
+            List<TransparenciaItem> despesas, List<Alerta> alertas) {
+
+        if (despesas.isEmpty()) return;
+
+        double totalPago = despesas.stream()
+                .mapToDouble(d -> d.valorPago() != null ? d.valorPago() : 0.0)
+                .sum();
+
+        int tipo = cnes.codigo_tipo_unidade() != null ? cnes.codigo_tipo_unidade() : 0;
+        double limiteAmostra = limiteGastoPorTipo(tipo);
+
+        if (totalPago > limiteAmostra) {
+            alertas.add(Alerta.builder()
+                    .estabelecimento(est)
+                    .severidade("medio")
+                    .tipo("GASTOS_PUBLICOS_ELEVADOS")
+                    .titulo("Volume de repasses federais acima do esperado para o tipo de unidade")
+                    .detalhe(String.format(
+                            "Total de R$ %,.2f identificado nas %d despesas mais recentes do Portal da Transparência " +
+                            "(favorecido pelo CNPJ). Para unidades do tipo %d, o limiar de atenção é R$ %,.2f. " +
+                            "Verifique se os repasses condizem com o porte e capacidade declarados no CNES.",
+                            totalPago, despesas.size(), tipo, limiteAmostra))
+                    .valorEstimado(String.format("R$ %,.2f", totalPago))
+                    .criadoEm(Instant.now())
+                    .build());
+        }
     }
 
     private void detectarTipoIncompativelComEstoque(
@@ -162,19 +226,28 @@ public class AlertaDetector {
         }
     }
 
+    private double limiteGastoPorTipo(int tipo) {
+        return switch (tipo) {
+            case 5, 7  -> 50_000_000.0;  // hospital geral / especializado
+            case 15, 20, 39 -> 20_000_000.0; // unidade mista / pronto socorro / UPA
+            case 2  -> 5_000_000.0;  // UBS
+            case 1  -> 2_000_000.0;  // posto de saúde
+            default -> 10_000_000.0;
+        };
+    }
+
     private long limiteEstoquePorTipo(int tipo) {
         return switch (tipo) {
-            case 5, 7  -> 100_000L; // hospital geral / especializado
-            case 15, 20, 39 -> 50_000L; // unidade mista / pronto socorro / UPA
-            case 2  -> 20_000L; // UBS
-            case 1  -> 10_000L; // posto de saúde
-            case 71 -> 15_000L; // CAPS
+            case 5, 7  -> 100_000L;
+            case 15, 20, 39 -> 50_000L;
+            case 2  -> 20_000L;
+            case 1  -> 10_000L;
+            case 71 -> 15_000L;
             default -> 5_000L;
         };
     }
 
     private LocalDate parseData(String data) {
-        // Tenta os formatos mais comuns do DATASUS
         for (DateTimeFormatter fmt : List.of(
                 DateTimeFormatter.ofPattern("yyyy-MM-dd"),
                 DateTimeFormatter.ofPattern("dd/MM/yyyy"),

@@ -37,6 +37,12 @@
               {{ alerts.length }} alertas
             </span>
           }
+          @if (tcu()?.sancionado) {
+            <span class="text-xs px-2 py-0.5 rounded-full font-semibold mono"
+                  style="background: rgba(220,38,38,0.2); color: #dc2626; border: 1px solid rgba(220,38,38,0.5);">
+              ⚠ TCU SANCIONADO
+            </span>
+          }
         </div>
         <div class="flex items-center gap-3 mt-0.5 flex-wrap">
           <span class="text-xs mono" style="color: var(--text-muted);">{{ entity().code }}</span>
@@ -288,7 +294,12 @@
           <!-- Repasses table -->
           <div class="rounded-xl overflow-hidden" style="background: var(--surface); border: 1px solid var(--border);">
             <div class="px-4 py-3" style="border-bottom: 1px solid var(--border);">
-              <p class="text-xs font-semibold" style="color: var(--text);">Repasses do FNS por programa</p>
+              <p class="text-xs font-semibold" style="color: var(--text);">
+                {{ transfers.length > 0 && transfers[0].source !== 'BNAFAR' ? 'Despesas — Portal da Transparência' : 'Estoque BNAFAR-HORUS' }}
+              </p>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                {{ transfers.length > 0 && transfers[0].source !== 'BNAFAR' ? 'Últimas despesas do CNPJ no Portal da Transparência Federal' : 'Medicamentos registrados no sistema BNAFAR/HORUS' }}
+              </p>
             </div>
             <div class="grid px-4 py-2.5 text-xs font-semibold"
                  style="grid-template-columns: 60px 1fr 110px 80px 80px; gap: 8px; background: var(--surface-2); border-bottom: 1px solid var(--border); color: var(--text-muted);">
@@ -342,6 +353,30 @@
               </p>
             </div>
           </div>
+
+          <!-- TCU status card -->
+          @if (tcu()) {
+            <div class="flex items-center gap-3 p-4 rounded-xl mb-4"
+                 [style.background]="tcu()!.sancionado ? 'rgba(220,38,38,0.08)' : tcu()!.status === 'indisponivel' ? 'rgba(100,100,100,0.08)' : 'rgba(74,222,128,0.07)'"
+                 [style.border]="tcu()!.sancionado ? '1px solid rgba(220,38,38,0.3)' : tcu()!.status === 'indisponivel' ? '1px solid var(--border)' : '1px solid rgba(74,222,128,0.25)'">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold"
+                   [style.background]="tcu()!.sancionado ? 'rgba(220,38,38,0.15)' : tcu()!.status === 'indisponivel' ? 'var(--surface-3)' : 'rgba(74,222,128,0.15)'"
+                   [style.color]="tcu()!.sancionado ? '#dc2626' : tcu()!.status === 'indisponivel' ? 'var(--text-muted)' : '#4ade80'">
+                TCU
+              </div>
+              <div class="flex-1">
+                <p class="text-xs font-semibold"
+                   [style.color]="tcu()!.sancionado ? '#dc2626' : tcu()!.status === 'indisponivel' ? 'var(--text-muted)' : '#4ade80'">
+                  @if (tcu()!.sancionado) { CNPJ sancionado — {{ tcu()!.totalOcorrencias }} ocorrência(s) registrada(s) no TCU }
+                  @else if (tcu()!.status === 'indisponivel') { TCU indisponível no momento }
+                  @else { CNPJ sem restrições no TCU (APF) }
+                </p>
+                <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                  Verificação via certidões-apf.apps.tcu.gov.br · Cadastro de Fornecedores Federais
+                </p>
+              </div>
+            </div>
+          }
 
           <!-- Alert cards -->
           <div class="flex flex-col gap-3 mb-6">
